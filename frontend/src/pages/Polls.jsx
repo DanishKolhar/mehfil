@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { Vote, Plus, Calendar, AlertCircle, BarChart2, Check, Trash2 } from 'lucide-react';
+import { Vote, Plus, Calendar, AlertCircle, BarChart2, Check, Trash2, ArrowUpRight } from 'lucide-react';
 
 export default function Polls() {
   const { groupId } = useParams();
+  const navigate = useNavigate();
   const { api, activeGroupDetails } = useApp();
 
   const [polls, setPolls] = useState([]);
@@ -331,6 +332,28 @@ export default function Polls() {
                   </span>
                 </div>
 
+                {!activePollDetails.poll.is_active && isAdmin && (
+                  <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
+                    <button
+                      onClick={() => {
+                        const options = activePollDetails.options || [];
+                        let winningOption = null;
+                        if (options.length > 0) {
+                          winningOption = options.reduce((max, opt) => (opt.votes_count > max.votes_count ? opt : max), options[0]);
+                        }
+                        if (winningOption) {
+                          navigate(`/group/${groupId}/events?convertPollId=${activePollDetails.poll.id}&winningOption=${encodeURIComponent(winningOption.option_text)}&pollType=${activePollDetails.poll.type}&pollTitle=${encodeURIComponent(activePollDetails.poll.title)}`);
+                        }
+                      }}
+                      className="btn btn-primary"
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                    >
+                      <ArrowUpRight size={16} />
+                      <span>Convert Winning Choice to Event</span>
+                    </button>
+                  </div>
+                )}
+
               </div>
             ) : (
               <div style={{ display: 'flex', height: '300px', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', textAlign: 'center', gap: '0.5rem' }}>
@@ -388,11 +411,13 @@ export default function Polls() {
                     onChange={(e) => setPollType(e.target.value)}
                   >
                     <option value="date">Date Poll</option>
-                    <option value="venue">Venue Location</option>
+                    <option value="venue">Venue Poll</option>
+                    <option value="restaurant">Restaurant Poll</option>
+                    <option value="movie">Movie Poll</option>
+                    <option value="budget">Budget Poll</option>
                     <option value="food">Food Choices</option>
                     <option value="theme">Dress & Theme</option>
                     <option value="games">Games / Activity</option>
-                    <option value="budget">Budget Pool</option>
                     <option value="other">Other Selection</option>
                   </select>
                 </div>

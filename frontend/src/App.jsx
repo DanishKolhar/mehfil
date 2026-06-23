@@ -1,5 +1,5 @@
-import React, { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import React, { lazy, Suspense, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import Navigation from './components/Navigation';
 
@@ -91,10 +91,42 @@ const UserSettingsLayout = () => {
   );
 };
 
+const TitleManager = () => {
+  const location = useLocation();
+  const { activeGroup } = useApp();
+
+  useEffect(() => {
+    const path = location.pathname;
+
+    if (path === '/') {
+      document.title = 'Mehfil';
+    } else if (path === '/login') {
+      document.title = 'Mehfil | Login';
+    } else if (path === '/signup' || path === '/register') {
+      document.title = 'Mehfil | Create Account';
+    } else if (path === '/dashboard') {
+      document.title = 'Mehfil | Dashboard';
+    } else if (path === '/profile') {
+      document.title = 'Mehfil | Profile';
+    } else if (path === '/settings') {
+      document.title = 'Mehfil | Settings';
+    } else if (path.endsWith('/reports')) {
+      document.title = 'Mehfil | Reports';
+    } else if (path.startsWith('/group/')) {
+      document.title = activeGroup ? `Mehfil | ${activeGroup.name}` : 'Mehfil';
+    } else {
+      document.title = 'Mehfil';
+    }
+  }, [location.pathname, activeGroup]);
+
+  return null;
+};
+
 export default function App() {
   return (
     <AppProvider>
       <Router>
+        <TitleManager />
         <Routes>
           {/* Public Authentication routes */}
           {/* Public Landing Page */}

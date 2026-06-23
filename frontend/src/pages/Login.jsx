@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import Logo from '../components/Logo';
 
 export default function Login() {
   const { login, token } = useApp();
@@ -53,9 +54,9 @@ export default function Login() {
       }}>
         {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>
-            MEHFIL
-          </h2>
+          <div style={{ marginBottom: '0.5rem' }}>
+            <Logo size={42} showText={true} />
+          </div>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
             Welcome back. Access your workspace.
           </p>

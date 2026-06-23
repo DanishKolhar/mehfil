@@ -278,6 +278,90 @@ export default function Reports() {
             </div>
           )}
 
+          {/* Event KPI Metrics */}
+          <div className="panel grid-col-6">
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              <TrendingUp size={16} style={{ color: 'var(--accent-blue)' }} />
+              <span>Event Scheduling Overview</span>
+            </h3>
+
+            {!analytics.eventAnalytics || analytics.eventAnalytics.totalEvents === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
+                No scheduled event data available to display.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', textAlign: 'center' }}>
+                <div style={{ backgroundColor: 'var(--bg-charcoal)', padding: '1rem 0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {analytics.eventAnalytics.totalEvents}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                    Total Events
+                  </div>
+                </div>
+
+                <div style={{ backgroundColor: 'var(--bg-charcoal)', padding: '1rem 0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-blue)' }}>
+                    {Math.round(analytics.eventAnalytics.averageAttendance * 10) / 10}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                    Avg Attendance
+                  </div>
+                </div>
+
+                <div style={{ backgroundColor: 'var(--bg-charcoal)', padding: '1rem 0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success)' }}>
+                    {analytics.eventAnalytics.rsvpParticipationRate}%
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                    RSVP Response
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Event Type Distribution List */}
+          <div className="panel grid-col-6">
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              <BarChart3 size={16} style={{ color: 'var(--accent-purple)' }} />
+              <span>Event Type Distribution</span>
+            </h3>
+
+            {!analytics.eventAnalytics || !analytics.eventAnalytics.typeDistribution || analytics.eventAnalytics.typeDistribution.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
+                No events categorized.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {analytics.eventAnalytics.typeDistribution.map((dist, idx) => {
+                  const percent = analytics.eventAnalytics.totalEvents > 0 
+                    ? Math.round((dist.count / analytics.eventAnalytics.totalEvents) * 100)
+                    : 0;
+                  return (
+                    <div key={idx}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.25rem' }}>
+                        <span>{dist.event_type}</span>
+                        <strong>{dist.count} event{dist.count !== 1 && 's'} ({percent}%)</strong>
+                      </div>
+                      
+                      {/* Bar chart track */}
+                      <div style={{ height: '8px', backgroundColor: 'var(--bg-charcoal)', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${percent}%`,
+                          backgroundColor: 'var(--accent-purple)',
+                          borderRadius: '4px',
+                          transition: 'width 0.4s ease'
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
         </div>
       )}
 

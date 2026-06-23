@@ -90,11 +90,53 @@ router.get('/:groupId/analytics', authenticateJWT, requireGroupMember, async (re
       [groupId]
     );
 
+    // E. Event Analytics
+    const [[{ totalEvents }]] = await db.query(
+      'SELECT COUNT(*) AS totalEvents FROM events WHERE group_id = ?',
+      [groupId]
+    );
+
+    const [typeDistribution] = await db.query(
+      'SELECT event_type, COUNT(*) AS count FROM events WHERE group_id = ? GROUP BY event_type',
+      [groupId]
+    );
+
+    const [[{ averageAttendance }]] = await db.query(
+      `SELECT COALESCE(AVG(present_or_late_count), 0) AS averageAttendance
+       FROM (
+         SELECT e.id, COUNT(ea.user_id) AS present_or_late_count
+         FROM events e
+         JOIN event_attendance ea ON e.id = ea.event_id
+         WHERE e.group_id = ? AND ea.status IN ('present', 'late')
+         GROUP BY e.id
+       ) event_att_counts`,
+      [groupId]
+    );
+
+    const [[rsvpRate]] = await db.query(
+      `SELECT 
+         COUNT(CASE WHEN er.responded = 1 THEN 1 END) AS responded_count,
+         COUNT(*) AS total_count
+       FROM event_rsvps er
+       JOIN events e ON er.event_id = e.id
+       WHERE e.group_id = ?`,
+      [groupId]
+    );
+    const rsvpParticipationRate = rsvpRate && rsvpRate.total_count > 0
+      ? Math.round((rsvpRate.responded_count / rsvpRate.total_count) * 100)
+      : 0;
+
     return res.json({
       contributions,
       expenses,
       attendance,
-      winners
+      winners,
+      eventAnalytics: {
+        totalEvents,
+        typeDistribution,
+        averageAttendance: parseFloat(averageAttendance || 0),
+        rsvpParticipationRate
+      }
     });
   } catch (error) {
     console.error('Fetch analytics error:', error);

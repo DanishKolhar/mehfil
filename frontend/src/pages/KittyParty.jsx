@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useTheme } from '../context/ThemeContext';
 import { Gift, Play, RotateCcw, AlertTriangle, HelpCircle, History, Sparkles, User, Info, Search } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export default function KittyParty() {
   const { groupId } = useParams();
   const { api, activeGroupDetails } = useApp();
+  const { theme } = useTheme();
 
   const [kittyStatus, setKittyStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -117,6 +119,7 @@ export default function KittyParty() {
     ctx.clearRect(0, 0, size, size);
 
     const arcSize = (2 * Math.PI) / drawingPool.length;
+    const isLightTheme = theme === 'light';
 
     drawingPool.forEach((candidate, idx) => {
       const startAngle = idx * arcSize;
@@ -129,9 +132,11 @@ export default function KittyParty() {
       ctx.closePath();
       
       // Alternate gray shades
-      ctx.fillStyle = idx % 2 === 0 ? '#1A1A1C' : '#27272A';
+      ctx.fillStyle = isLightTheme 
+        ? (idx % 2 === 0 ? '#F3F4F6' : '#E5E7EB') 
+        : (idx % 2 === 0 ? '#1A1A1C' : '#27272A');
       ctx.fill();
-      ctx.strokeStyle = '#3F3F46';
+      ctx.strokeStyle = isLightTheme ? '#D1D5DB' : '#3F3F46';
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
@@ -141,7 +146,7 @@ export default function KittyParty() {
       ctx.rotate(startAngle + arcSize / 2);
       
       ctx.textAlign = 'right';
-      ctx.fillStyle = '#E5E7EB';
+      ctx.fillStyle = isLightTheme ? '#111827' : '#E5E7EB';
       ctx.font = 'bold 11px sans-serif';
       
       // Truncate name
@@ -155,13 +160,13 @@ export default function KittyParty() {
     // Draw central node/pin
     ctx.beginPath();
     ctx.arc(center, center, 20, 0, 2 * Math.PI);
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = isLightTheme ? '#F3F4F6' : '#FFFFFF';
     ctx.fill();
-    ctx.strokeStyle = '#000000';
+    ctx.strokeStyle = isLightTheme ? '#D1D5DB' : '#000000';
     ctx.lineWidth = 2;
     ctx.stroke();
 
-  }, [drawingPool, drawType]);
+  }, [drawingPool, drawType, theme]);
 
   const handleManualExclusionToggle = (userId) => {
     setManualExcluded(prev => {

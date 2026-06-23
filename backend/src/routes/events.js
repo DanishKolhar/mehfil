@@ -7,15 +7,25 @@ const router = express.Router();
 // 1. Get Group Events
 router.get('/:groupId', authenticateJWT, requireGroupMember, async (req, res) => {
   const groupId = req.params.groupId;
+  const userId = req.user.id;
 
   try {
     const [events] = await db.query(
-      `SELECT e.*, u.full_name AS host_name
+      `SELECT e.*, u.full_name AS host_name,
+       (SELECT status FROM event_rsvps WHERE event_id = e.id AND user_id = ?) AS user_rsvp,
+       COALESCE(SUM(CASE WHEN er.status = 'attending' AND er.responded = 1 THEN 1 ELSE 0 END), 0) AS attending_count,
+       COALESCE(SUM(CASE WHEN er.status = 'maybe' AND er.responded = 1 THEN 1 ELSE 0 END), 0) AS maybe_count,
+       COALESCE(SUM(CASE WHEN er.status = 'not_attending' AND er.responded = 1 THEN 1 ELSE 0 END), 0) AS not_attending_count,
+       COALESCE(SUM(CASE WHEN er.responded = 0 THEN 1 ELSE 0 END), 0) AS no_response_count,
+       COALESCE(SUM(CASE WHEN er.responded = 1 THEN 1 ELSE 0 END), 0) AS responded_count,
+       COUNT(er.id) AS total_rsvps
        FROM events e
        JOIN users u ON e.host_id = u.id
+       LEFT JOIN event_rsvps er ON e.id = er.event_id
        WHERE e.group_id = ?
+       GROUP BY e.id, u.id
        ORDER BY e.date DESC, e.time DESC`,
-      [groupId]
+      [userId, groupId]
     );
 
     return res.json(events);
@@ -28,7 +38,7 @@ router.get('/:groupId', authenticateJWT, requireGroupMember, async (req, res) =>
 // 2. Create Event (Admin only)
 router.post('/:groupId', authenticateJWT, requireGroupAdmin, async (req, res) => {
   const groupId = req.params.groupId;
-  const { title, description, date, time, venue, theme, budget, hostId, notes } = req.body;
+  const { title, description, date, time, venue, theme, budget, hostId, eventType, rsvpDeadline, bookingLink, additionalFields } = req.body;
 
   if (!title || !date || !time || !venue || !hostId) {
     return res.status(400).json({ message: 'Title, Date, Time, Venue, and Host are required.' });
@@ -36,17 +46,31 @@ router.post('/:groupId', authenticateJWT, requireGroupAdmin, async (req, res) =>
 
   try {
     const [result] = await db.query(
-      `INSERT INTO events (group_id, title, description, date, time, venue, theme, budget, host_id, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'scheduled')`,
-      [groupId, title, description || null, date, time, venue, theme || null, budget || 0.00, hostId]
+      `INSERT INTO events (group_id, title, description, date, time, venue, theme, budget, host_id, status, event_type, rsvp_deadline, booking_link, additional_fields)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, ?, ?)`,
+      [
+        groupId,
+        title,
+        description || null,
+        date,
+        time,
+        venue,
+        theme || null,
+        budget || 0.00,
+        hostId,
+        eventType || 'Custom Event',
+        rsvpDeadline || null,
+        bookingLink || null,
+        additionalFields ? (typeof additionalFields === 'string' ? additionalFields : JSON.stringify(additionalFields)) : null
+      ]
     );
 
     // Automatically create RSVPs placeholder for all group members
     const [members] = await db.query('SELECT user_id FROM group_members WHERE group_id = ?', [groupId]);
     if (members.length > 0) {
-      const rsvpValues = members.map(m => [result.insertId, m.user_id, 'maybe']);
+      const rsvpValues = members.map(m => [result.insertId, m.user_id, 'maybe', 0]);
       await db.query(
-        'INSERT IGNORE INTO event_rsvps (event_id, user_id, status) VALUES ?',
+        'INSERT IGNORE INTO event_rsvps (event_id, user_id, status, responded) VALUES ?',
         [rsvpValues]
       );
     }
@@ -64,7 +88,7 @@ router.post('/:groupId', authenticateJWT, requireGroupAdmin, async (req, res) =>
 // 3. Edit Event (Admin only)
 router.put('/:groupId/:eventId', authenticateJWT, requireGroupAdmin, async (req, res) => {
   const eventId = req.params.eventId;
-  const { title, description, date, time, venue, theme, budget, hostId, status } = req.body;
+  const { title, description, date, time, venue, theme, budget, hostId, status, eventType, rsvpDeadline, bookingLink, additionalFields } = req.body;
 
   if (!title || !date || !time || !venue || !hostId) {
     return res.status(400).json({ message: 'Title, Date, Time, Venue, and Host are required.' });
@@ -73,9 +97,25 @@ router.put('/:groupId/:eventId', authenticateJWT, requireGroupAdmin, async (req,
   try {
     const [result] = await db.query(
       `UPDATE events 
-       SET title = ?, description = ?, date = ?, time = ?, venue = ?, theme = ?, budget = ?, host_id = ?, status = ?
+       SET title = ?, description = ?, date = ?, time = ?, venue = ?, theme = ?, budget = ?, host_id = ?, status = ?,
+           event_type = ?, rsvp_deadline = ?, booking_link = ?, additional_fields = ?
        WHERE id = ?`,
-      [title, description || null, date, time, venue, theme || null, budget || 0.00, hostId, status || 'scheduled', eventId]
+      [
+        title,
+        description || null,
+        date,
+        time,
+        venue,
+        theme || null,
+        budget || 0.00,
+        hostId,
+        status || 'scheduled',
+        eventType || 'Custom Event',
+        rsvpDeadline || null,
+        bookingLink || null,
+        additionalFields ? (typeof additionalFields === 'string' ? additionalFields : JSON.stringify(additionalFields)) : null,
+        eventId
+      ]
     );
 
     if (result.affectedRows === 0) {
@@ -163,9 +203,9 @@ router.post('/:groupId/:eventId/rsvp', authenticateJWT, requireGroupMember, asyn
 
   try {
     await db.query(
-      `INSERT INTO event_rsvps (event_id, user_id, status)
-       VALUES (?, ?, ?)
-       ON DUPLICATE KEY UPDATE status = ?`,
+      `INSERT INTO event_rsvps (event_id, user_id, status, responded)
+       VALUES (?, ?, ?, TRUE)
+       ON DUPLICATE KEY UPDATE status = ?, responded = TRUE`,
       [eventId, userId, status, status]
     );
 

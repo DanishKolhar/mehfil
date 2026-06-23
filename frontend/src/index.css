@@ -39,6 +39,29 @@
   --radius-lg: 16px;
 }
 
+:root.light-theme {
+  /* Colors - Light Theme Override */
+  --bg-obsidian: #FFFFFF;
+  --bg-charcoal: #F8F9FA;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F1F3F5;
+  --border-subtle: #E5E7EB;
+  --border-hover: #D1D5DB;
+  
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --text-muted: #9CA3AF;
+  
+  --accent-white: #111827; /* In light mode, primary/accent buttons have high-contrast dark backgrounds */
+  --accent-silver: #1F2937;
+  
+  --accent-blue-glow: rgba(37, 99, 235, 0.08);
+  --accent-purple-glow: rgba(124, 58, 237, 0.08);
+  
+  --success-glow: rgba(16, 185, 129, 0.08);
+  --danger-glow: rgba(239, 68, 68, 0.08);
+}
+
 /* Reset */
 * {
   margin: 0;
@@ -394,4 +417,18 @@ p {
   .grid-col-8, .grid-col-6, .grid-col-4, .grid-col-3 {
     grid-column: span 12;
   }
+}
+
+/* Micro-interaction overrides for premium light theme experience */
+:root.light-theme .spinner {
+  border-color: rgba(0, 0, 0, 0.1);
+  border-top-color: var(--accent-white);
+}
+
+:root.light-theme .custom-table tr:hover td {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+:root.light-theme .form-control:focus {
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
 }

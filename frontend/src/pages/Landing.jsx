@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import Logo from '../components/Logo';
 
 export default function Landing() {
   const { token } = useApp();
@@ -145,17 +146,9 @@ export default function Landing() {
       }}>
         {/* Hero Section */}
         <header style={{ marginBottom: '4rem' }}>
-          <h1 style={{
-            fontSize: '3.5rem',
-            fontWeight: 800,
-            letterSpacing: '-0.04em',
-            marginBottom: '1rem',
-            background: 'linear-gradient(to right, var(--text-primary), var(--text-secondary))',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}>
-            MEHFIL
-          </h1>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <Logo size={80} showText={true} />
+          </div>
           <p style={{
             fontSize: '1.5rem',
             fontWeight: 500,
